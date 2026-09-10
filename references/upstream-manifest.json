@@ -1,0 +1,26 @@
+{
+  "repository": "https://github.com/abi/screenshot-to-code",
+  "commit": "d026163f586dfa8c5c10d28c36edd59a9d3b0e88",
+  "files": [
+    {
+      "upstream": "backend/prompts/system_prompt.py",
+      "vendored": "vendor/prompts/system_prompt.py",
+      "sha256": "807cb7dbef47809a1513cbd98c1634cc106e0b869d462dcd34a70cb3009a9579"
+    },
+    {
+      "upstream": "backend/prompts/create/image.py",
+      "vendored": "vendor/prompts/create/image.py",
+      "sha256": "85d1b1c6bd867c50dec80cfcb12db7fbc1f216623a6940c41e9da8d0d2b3b081"
+    },
+    {
+      "upstream": "backend/codegen/utils.py",
+      "vendored": "vendor/codegen/utils.py",
+      "sha256": "e53eff19362b3e3d3b90d32b1fcb976e8ee2778242b706c82033c29e7b42ab8c"
+    },
+    {
+      "upstream": "LICENSE",
+      "vendored": "vendor/LICENSE",
+      "sha256": "a264aef6acfaf75d9dcf0600a984f0f0ad0a36c2961013f530e2367d66201fd7"
+    }
+  ]
+}
