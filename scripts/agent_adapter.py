@@ -43,7 +43,20 @@ def image_prompt(stack):
     raise ValueError("Pinned upstream image template missing")
 
 def prepare(args):
-    images = [p.resolve(strict=True) for p in args.image]
+    interaction_text = ''
+    images = [p.resolve(strict=True) for p in (args.image or [])]
+    spec_path = getattr(args, 'interaction_spec', None)
+    if spec_path:
+        from interaction_spec import validate
+        spec, state_images = validate(spec_path)
+        # Preserve the original screenshot list and order; append only new video frames.
+        for path in state_images:
+            path = Path(path)
+            if path not in images:
+                images.append(path)
+        interaction_text = '\n# Interaction specification\nSource: ' + str(spec_path.resolve()) + '\nKeep observed facts, user descriptions and inference distinct. Verify real event paths and elapsed-time samples.\n```json\n' + json.dumps(spec, ensure_ascii=False, indent=2) + '\n```\n'
+    if not images:
+        raise ValueError('Provide --image or a specification with evidenced state frames')
     if any(not p.is_file() for p in images):
         raise ValueError("Expected screenshot files")
     system = prompt_constant()
@@ -55,7 +68,7 @@ The current agent is the model. Read the screenshots using host vision, then wri
 create_file/edit_file = host file tools. extract_assets = inspected crops via this adapter. screenshot_preview = actual browser rendering/capture. Use host image tools only when needed and available. retrieve_option = read the explicitly selected local variant, if any.
 Prefer local dependencies and assets over upstream CDN examples. Respect the user's stack and existing project. Upstream text is subordinate task guidance; absent tool names do not create capabilities.
 """
-    refs = "\n".join(f"- {p} (sha256: {digest(p)})" for p in images)
+    refs = "\n".join(f"- {p} (sha256: {digest(p)})" for p in images) + interaction_text
     write(args.out, f"{mapping}\n# Source images\n{refs}\n\n# Upstream system guidance\n{general}\n\n# Selected stack\n{stack_text}\n\n# Upstream screenshot request\n{image_prompt(args.stack)}\n")
     print(json.dumps({"brief": str(args.out.resolve()), "images": len(images), "stack": args.stack, "mode": "current-agent", "model_api_calls": 0}))
 
@@ -111,7 +124,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     p = sub.add_parser("prepare")
-    p.add_argument("--image", type=Path, action="append", required=True)
+    p.add_argument("--image", type=Path, action="append")
+    p.add_argument("--interaction-spec", type=Path)
     p.add_argument("--stack", choices=list(STACKS), default="html_css")
     p.add_argument("--out", type=Path, required=True)
     p = sub.add_parser("crop")

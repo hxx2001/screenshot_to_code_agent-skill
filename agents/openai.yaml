@@ -1,4 +1,4 @@
 interface:
-  display_name: "截图复刻 H5"
-  short_description: "用当前 Agent 将网页或移动端 H5 截图复刻为可编辑的本地前端代码"
-  default_prompt: "使用 $screenshot-to-code-agent 将这些截图复刻成本地可运行的 H5，并截图对比校准。"
+  display_name: "截图与视频复刻 H5"
+  short_description: "保留截图高保真复刻与同尺寸校准能力，新增录屏交互和动画还原，输出可编辑 H5"
+  default_prompt: "使用 $screenshot-to-code-agent 高保真复刻页面并截图对比修正；若提供录屏，在相同页面标准上增加交互与动画，并分别验证。"
