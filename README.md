@@ -2,18 +2,45 @@
 
 使用当前 Agent，将网页或移动端 H5 的截图、录屏复刻为可编辑、可本地运行的前端代码。截图提供布局细节，录屏提供已演示的状态变化和动画过程。
 
-支持截图、视频、截图加视频三种输入。新页面默认 HTML/CSS/JavaScript 与本地资源；已有项目沿用原框架。辅助脚本不负责识图或生成代码，不需要额外模型 API Key。
+支持截图、视频、截图加视频三种输入。新页面默认 HTML/CSS/JavaScript 与本地资源；已有项目沿用原框架。辅助脚本不负责识图或生成代码。
 
 ## 安装
 
+视频扩展目前位于 `codex/video-interaction-recreation` 分支；`main` 仍是纯截图版。安装本文介绍的视频扩展版，请指定分支：
+
 ```bash
-git clone https://github.com/hxx2001/screenshot_to_code_agent-skill.git \
+git clone --branch codex/video-interaction-recreation https://github.com/hxx2001/screenshot_to_code_agent-skill.git \
   ~/.codex/skills/screenshot-to-code-agent
 ```
 
 自定义了 CODEX_HOME 时，使用其 skills 目录。目标已存在时先检查内容，不覆盖已有修改。通过 Git 克隆会保留历史；通过下载式安装器安装的文件目录可能没有 .git。
 
 需要 Python 3.10+；裁图与图像比较需要 Pillow。视频抽帧还需要 FFmpeg 和 FFprobe。运行 `python3 scripts/video_frames.py doctor` 检查；可用 `SCREENSHOT_TO_CODE_FFMPEG` 和 `SCREENSHOT_TO_CODE_FFPROBE` 指定已有可执行文件。浏览器操作、录制和截图使用当前 Agent 环境提供的能力，本仓库不自带浏览器驱动。
+
+## 更新与同步
+
+已通过 Git 安装的用户，先确认工作区没有需要保留的修改，再更新视频扩展分支：
+
+```bash
+cd ~/.codex/skills/screenshot-to-code-agent
+git fetch origin
+git switch codex/video-interaction-recreation
+git pull --ff-only
+```
+
+若安装目录没有 `.git`，应先在独立仓库副本中拉取该分支，再同步技能文件；不要在旧版目录直接运行 `git pull`。同步时包含新增的 `references/` 与 `scripts/` 文件，不要只替换 `SKILL.md`，并先备份自己的修改。
+
+## 本次扩展
+
+功能提交 `d97ed5c` 保留原截图流程，并新增：
+
+- 录屏抽帧与真实时间索引，包括分段采样和动画窗口逐帧导出。
+- `interaction-spec.json`：记录状态、转换、触发依据，以及观察、推断和未知项。
+- 按真实经过时间配对参考录屏与复刻录屏，输出动态对比图与时间误差。
+- 页面视觉、交互行为、动态还原分别验证，避免用点击成功代替视觉检查。
+- 截图兼容性与视频辅助工具的回归测试。
+
+纯截图任务继续支持原有四个辅助命令，不要求 FFmpeg 或交互说明文件。新增依赖只用于相应的视频、裁图和比较操作。
 
 ## 使用
 
