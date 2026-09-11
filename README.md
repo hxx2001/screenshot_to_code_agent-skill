@@ -96,7 +96,3 @@ screenshot-to-code-agent/
 - 复刻质量取决于截图清晰度、素材完整性、字体和运行环境，不保证像素级一致。
 - 页面中的关注、发布、分享等交互默认在本地演示，不代表接入真实业务服务。
 - 页面以可编辑代码实现，不将整张截图作为页面背景来代替界面。
-
-## 来源与许可
-
-部分提示词与 HTML 提取代码来自 [abi/screenshot-to-code](https://github.com/abi/screenshot-to-code)。复用范围及固定版本见 [来源说明](references/upstream.md)，对应的 MIT 许可证保留在 [vendor/LICENSE](vendor/LICENSE)。
