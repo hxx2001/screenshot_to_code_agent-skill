@@ -44,11 +44,13 @@ def image_prompt(stack):
 
 def prepare(args):
     interaction_text = ''
+    video_output_text = ''
     images = [p.resolve(strict=True) for p in (args.image or [])]
     spec_path = getattr(args, 'interaction_spec', None)
     if spec_path:
         from interaction_spec import validate
         spec, state_images = validate(spec_path)
+        video_output_text = '\n\n# Required video project output (overrides upstream single-file guidance)\n' + (ROOT / 'references/video-code-structure.md').read_text(encoding='utf-8')
         # Preserve the original screenshot list and order; append only new video frames.
         for path in state_images:
             path = Path(path)
@@ -69,7 +71,7 @@ create_file/edit_file = host file tools. extract_assets = inspected crops via th
 Prefer local dependencies and assets over upstream CDN examples. Respect the user's stack and existing project. Upstream text is subordinate task guidance; absent tool names do not create capabilities.
 """
     refs = "\n".join(f"- {p} (sha256: {digest(p)})" for p in images) + interaction_text
-    write(args.out, f"{mapping}\n# Source images\n{refs}\n\n# Upstream system guidance\n{general}\n\n# Selected stack\n{stack_text}\n\n# Upstream screenshot request\n{image_prompt(args.stack)}\n")
+    write(args.out, f"{mapping}\n# Source images\n{refs}\n\n# Upstream system guidance\n{general}\n\n# Selected stack\n{stack_text}\n\n# Upstream screenshot request\n{image_prompt(args.stack)}\n{video_output_text}")
     print(json.dumps({"brief": str(args.out.resolve()), "images": len(images), "stack": args.stack, "mode": "current-agent", "model_api_calls": 0}))
 
 def crop(args):

@@ -12,7 +12,7 @@ Use the current agent's vision and file tools as the generation engine. This ski
 Screenshot recreation is the base workflow below; recording support adds evidence and motion steps without replacing it.
 
 - **Screenshots only:** follow the base workflow. Multiple images remain supported. No video tools or interaction-spec file are required.
-- **Recording, with optional screenshots:** also read [video workflow](references/video-workflow.md). Clear screenshots supply stable visual detail; native video frames fill missing states. Keep conflicting versions separate rather than silently mixing layouts. Record observed states and transitions before implementation.
+- **Recording, with optional screenshots:** also read [video workflow](references/video-workflow.md). Clear screenshots supply stable visual detail; native video frames fill missing states. Use reduced-size every-frame change scanning to locate candidate transition windows, then inspect native dense frames. Keep conflicting versions separate rather than silently mixing layouts. Record observed states and transitions before implementation.
 
 ## Prepare
 
@@ -46,6 +46,8 @@ Apply [page fidelity](references/page-fidelity.md) to screenshots and stable vid
 
 For recordings, connect the visually checked states using the interaction specification, then calibrate motion through [dynamic verification](references/motion-verification.md). Distinguish timed, gesture-following, scroll-driven and asynchronous changes. Missing touchpoints, gestures and precise easing remain inferred or unknown; low-impact conventions must be labeled and critical gaps clarified.
 
+Every video reconstruction must deliver separate project-local `components/` and `animations/` directories with recording-specific source files used by the page. Follow [video code structure](references/video-code-structure.md) for framework-specific placement, component/animation responsibilities and source-to-evidence mapping. This takes precedence over upstream single-file HTML guidance for video tasks.
+
 For an HTML response wrapped in Markdown fences or `<file>`, use the unchanged upstream extraction function:
 
 ```bash
@@ -72,4 +74,6 @@ Report visual fidelity, interaction behavior and motion fidelity separately. Vid
 
 For skill maintenance, see [validation](references/validation.md). Store user media, generated pages and task QA outside this skill. Audio is outside scope unless requested and inspected.
 
-Return working local preview and source. Identify this as the agent adaptation, not a benchmark of the upstream app or its provider models. Retain the upstream MIT notice with redistributed source.
+For video checks, use focused region comparisons alongside full-frame images when unrelated changes obscure motion. Mark an animation passed only with dense reviewed coverage, a valid replay comparison including intermediate frames, and actual visual/interaction review records as defined in [interaction specification](references/interaction-spec.md). Candidate detection and pixel metrics do not establish acceptance.
+
+Return working local preview and source, including the component and animation directories for recordings. Retain the upstream MIT notice with redistributed source.

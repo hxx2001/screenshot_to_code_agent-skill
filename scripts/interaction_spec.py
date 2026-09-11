@@ -15,6 +15,50 @@ def require(condition, message):
         raise ValueError(message)
 
 
+def replay_report(path, source_index, start, end):
+    """Check replay coverage/provenance, never infer visual acceptance from pixels."""
+    path = Path(path).resolve(strict=True)
+    report = json.loads(path.read_text())
+    require(report.get('version') == 2, 'Passed motion requires a version 2 comparison report')
+    require((path.parent / report['reference_index']).resolve() == source_index,
+            'Comparison reference must be the motion window source index')
+    indices = {side: load_index(path.parent / report[side + '_index']) for side in ('reference', 'render')}
+    frames = {side: {f['frame_number']: f for f in index['frames']} for side, index in indices.items()}
+    tolerance = report['tolerance']
+    require(type(tolerance) in (int, float) and math.isfinite(tolerance) and tolerance >= 0, 'Invalid pairing tolerance')
+    for side in ('reference', 'render'):
+        origin = report[side + '_start']
+        require(type(origin) in (int, float) and math.isfinite(origin) and origin >= 0, 'Invalid replay start')
+    numbers = {'reference': [], 'render': []}
+    previous_offset = -math.inf
+    for pair in report['pairs']:
+        offset = pair['offset']
+        require(type(offset) in (int, float) and math.isfinite(offset) and offset >= 0 and offset > previous_offset,
+                'Replay offsets must be finite, nonnegative and increasing')
+        previous_offset = offset
+        elapsed = {}
+        for side in ('reference', 'render'):
+            number = pair[side]['frame_number']
+            require(number in frames[side], 'Replay refers to a missing indexed frame')
+            actual = frames[side][number]
+            require(pair[side]['relative_seconds'] == actual['relative_seconds'], 'Replay timestamp differs from index')
+            numbers[side].append(number)
+            elapsed[side] = actual['relative_seconds'] - report[side + '_start']
+            require(abs(elapsed[side] - offset) <= tolerance + 1e-9, 'Replay frame outside tolerance')
+        require(abs(elapsed['reference'] - elapsed['render']) <= tolerance + 1e-9,
+                'Reference/render elapsed times differ beyond tolerance')
+        for key in ('pair_image', 'overlay_image', 'difference_image'):
+            artifact = (path.parent / pair[key]).resolve(strict=True)
+            require(path.parent in artifact.parents and artifact.is_file(), 'Missing local comparison image')
+    for side, sequence in numbers.items():
+        require(len(sequence) >= 3 and all(b > a for a, b in zip(sequence, sequence[1:])),
+                'Passed motion needs at least three distinct ordered frames per recording; no reused frames')
+        require(all(n in frames[side] for n in range(sequence[0], sequence[-1] + 1)),
+                'Passed replay needs dense frame coverage in both recordings')
+    require(numbers['reference'][0] == start and numbers['reference'][-1] == end,
+            'Comparison must cover motion window endpoints and an intermediate frame')
+
+
 def validate(path):
     path = Path(path).resolve(strict=True)
     spec = json.loads(path.read_text())
@@ -26,6 +70,7 @@ def validate(path):
     sources = {key: load_index(path.parent / file) for key, file in spec['sources'].items()}
     frames = {key: {f['frame_number']: f for f in index['frames']} for key, index in sources.items()}
     reviewed = {key: set() for key in sources}
+    dense_reviewed = {key: set() for key in sources}
 
     def frame(source, number):
         require(source in frames and number in frames[source], f'Missing frame {source}:{number}')
@@ -43,6 +88,7 @@ def validate(path):
         selected = {n for n in frames[source] if start <= n <= end}
         if item['density'] == 'every-frame':
             require(len(selected) == end - start + 1, 'Every-frame review points to missing frames')
+            dense_reviewed[source].update(selected)
         reviewed[source].update(selected)
 
     def evidence(refs):
@@ -57,6 +103,8 @@ def validate(path):
         state_ids.add(state['id'])
         require(bool(state['description']), 'State needs description')
         refs = state.get('evidence', [])
+        if 'basis' in state:
+            require(state['basis'] in BASIS, 'Invalid state basis')
         require(bool(refs) or state.get('basis') in BASIS - {'observed'}, 'State needs evidence or explicit non-observed basis')
         evidence(refs)
         state_images.extend(frame(r['source'], r['frame_number'])['_path'] for r in refs)
@@ -96,6 +144,19 @@ def validate(path):
         require(verification['status'] in {'pending', 'partial', 'blocked', 'passed'}, 'Unknown verification status')
         if verification['status'] == 'passed':
             require(bool(span) and bool(verification['evidence']), 'Passed motion needs demonstrated window and replay evidence')
+            if motion['kind'] in {'timed', 'gesture', 'scroll'}:
+                require(end - start >= 2 and all(n in dense_reviewed[source] for n in range(start, end + 1)),
+                        'Passed motion needs every-frame review including intermediate frames')
+                reports = verification.get('comparison_reports', [])
+                require(isinstance(reports, list) and bool(reports), 'Passed motion needs local comparison_reports')
+                review = verification.get('review', {})
+                for key in ('motion', 'interaction'):
+                    require(isinstance(review.get(key), str) and bool(review[key].strip()),
+                            f'Passed motion needs a written {key} review')
+                source_index = (path.parent / spec['sources'][source]).resolve()
+                for report in reports:
+                    require(isinstance(report, str) and bool(report), 'Comparison report must be a local path')
+                    replay_report(path.parent / report, source_index, start, end)
             for item in verification['evidence']:
                 require(isinstance(item, str) and bool(item), 'Replay evidence must be a path or URL')
                 if not item.startswith(('https://', 'http://')):

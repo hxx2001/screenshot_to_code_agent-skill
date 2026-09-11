@@ -15,6 +15,20 @@ Output is a unique directory containing native-resolution PNGs, `index.json` and
 
 Inspect overview batches and inventory states and transitions, including closing/returning. Sparse sampling can miss brief operations. Review continuous playback when available; otherwise bound coverage to inspected samples and dense transition windows. Do not claim all interactions were found from a sparse overview.
 
+To locate short changes between overview samples, scan every decoded frame at reduced resolution:
+
+```bash
+python3 <skill>/scripts/video_changes.py /absolute/demo.mp4 --output /absolute/work/changes --extract
+```
+
+The scanner uses Pillow and FFmpeg, preserves frame cadence, and detects adjacent-frame pixel changes. It emits `changes.json` with candidate windows, actual relative times, affected regions, and argument arrays for dense extraction. `--extract` also exports native-resolution consecutive frames for those windows. It does not identify clicks or classify interactions. Inspect candidates before marking their frames as reviewed evidence.
+
+Defaults: scan width 320 px, per-channel pixel threshold 12/255, changed area fraction 0.008, 0.15 s before and 0.25 s after a change, and 0.15 s merge gap. Tune `--pixel-threshold`, `--changed-fraction`, `--scan-width`, `--before`, `--after`, or `--merge-gap` for the recording. Tiny controls and slow/subtle motion may fall below thresholds; no candidates does not prove no interactions. Continuous playback and stable-state inspection remain necessary. Decorations or compression noise can produce extra candidates.
+
+Use repeatable `--region name:left,top,right,bottom` for small controls, e.g. `--region button:250,650,380,730`. Coordinates use original decoded image pixels after video orientation, not CSS pixels or the reduced scan size. Full-frame scanning is retained. Choose a box containing the complete motion path; it does not track an element automatically.
+
+Long candidates are split into at most 600 consecutive frames per batch with a shared boundary frame. Automatic extraction stops before exporting more than 40 batches; the saved report contains commands for selective extraction. The scanner probes and decodes the source each run, with a 600-second limit per subprocess. For long/noisy recordings, inspect the report and extract relevant batches.
+
 ```bash
 python3 <skill>/scripts/video_frames.py extract /absolute/demo.mp4 --start 2 --end 4 --interval 0.1 --output /absolute/work/frames
 python3 <skill>/scripts/video_frames.py extract /absolute/demo.mp4 --start 2.5 --end 3.2 --every-frame --output /absolute/work/frames
@@ -31,6 +45,8 @@ Separate observed geometry, state, motion direction, ordering and timestamps fro
 For gesture/scroll motion, measure the relationship to displacement where pointer/scroll anchors are visible. Otherwise mark the driver inferred and request a small additional recording only if the gap blocks the requested fidelity. Separate loading delay from animation time; recording stalls are not automatically intended motion.
 
 ## Implement
+
+Follow [video code structure](video-code-structure.md): for every recording, implement its components and animations as actual source in separate project-local directories, and wire them into the runnable page. Plan the files from the observed states and transitions. Keep the frame-extraction workflow as the source of visual and timing evidence.
 
 Feed the specification and clear frames into the original `agent_adapter.py prepare` route. Read its screenshot guidance and apply [page fidelity](page-fidelity.md) to every stable state. Render, inspect and correct those states before accepting the page; then connect state transitions and motion. Recheck affected stable states after motion changes. Keep motion parameters together in the generated project for calibration and prefer the project's existing animation mechanism.
 

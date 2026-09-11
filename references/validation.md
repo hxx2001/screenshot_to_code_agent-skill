@@ -1,5 +1,15 @@
 # Screenshot baseline and recording extension validation
 
+## Video optimization checks, 2026-09-11
+
+The updated suite passes 17 tests with none skipped, using real FFmpeg/FFprobe and Pillow. Skill Creator frontmatter validation and new CLI help checks pass. Screenshot compatibility checks remain in the same suite.
+
+- A generated 640×360 recording contains a small 80 ms change between the overview's first/last samples. Every-frame scanning at 320×180 detects it in the specified control region and exports consecutive native-size frames before and after it. Static video emits no candidates. A long candidate splits into overlapping batches of at most 600 frames.
+- Focused comparisons isolate a clean content region from a changed background region, retain the whole-frame difference, preserve crop dimensions and reject out-of-bounds boxes.
+- Dense replay evidence with written reviews validates. The previously accepted sparse start/end-only animation pass is rejected. Further cases reject missing intermediate frames, reused frames, inconsistent timestamps, missing images/reports, incomplete endpoint coverage, excessive relative-time skew and missing interaction review. Partial specifications still work.
+
+These are generated-media and helper checks. They do not establish detection recall on arbitrary recordings or replace a real external-recording reconstruction and browser acceptance. Small/slow changes may require thresholds or regions to be adjusted; automatic candidates are not reviewed interaction evidence. New animation pass records need version 2 comparison reports; previous screenshot commands remain compatible.
+
 ## Baseline preservation audit, 2026-09-11
 
 Compared the installed upgrade directly with screenshot-only commit `ffd43c5ba4273dcde264586ee0c391d6d0c3d598`, extracted into a separate local directory. The original SKILL workflow body is retained; recording routing, shared visual acceptance and motion verification are additions. The default invocation and README also retain screenshot-first page implementation and correction.
@@ -8,7 +18,7 @@ Compared the installed upgrade directly with screenshot-only commit `ffd43c5ba42
 - Original screenshot briefs are byte-identical in 18 cases: all six supported stacks, each with one image, multiple images and repeated images in a specified order.
 - Original crop image/provenance manifest, HTML extraction for raw/fenced/file-wrapped input, side-by-side comparison and overlay outputs are byte-identical. Unequal image dimensions still fail with the original error.
 - Fixed compatibility for callers that use the original `prepare` argument namespace without `interaction_spec`, and preserved the screenshot sequence. Video frames are appended only when a specification is provided.
-- Current regression suite: 11 tests passed, none skipped, including original-call compatibility, screenshot preparation with standard-library-only Python and no executable PATH, mixed screenshot/video input, and real FFmpeg VFR extraction.
+- Regression suite at that baseline audit: 11 tests passed, none skipped, including original-call compatibility, screenshot preparation with standard-library-only Python and no executable PATH, mixed screenshot/video input, and real FFmpeg VFR extraction.
 
 This establishes preservation of the checked workflow requirements, source prompts and helper behavior. It does not prove equal generated-page quality across all agent runs. The real recording trial exposed missed visual correction despite successful interactions; [page fidelity](page-fidelity.md) now makes the original visual correction loop explicit for both routes. Each generated page still needs final browser inspection; helper tests cannot grant visual acceptance.
 

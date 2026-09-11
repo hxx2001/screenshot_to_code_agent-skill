@@ -15,7 +15,7 @@ git clone --branch codex/video-interaction-recreation https://github.com/hxx2001
 
 自定义了 CODEX_HOME 时，使用其 skills 目录。目标已存在时先检查内容，不覆盖已有修改。通过 Git 克隆会保留历史；通过下载式安装器安装的文件目录可能没有 .git。
 
-需要 Python 3.10+；裁图与图像比较需要 Pillow。视频抽帧还需要 FFmpeg 和 FFprobe。运行 `python3 scripts/video_frames.py doctor` 检查；可用 `SCREENSHOT_TO_CODE_FFMPEG` 和 `SCREENSHOT_TO_CODE_FFPROBE` 指定已有可执行文件。浏览器操作、录制和截图使用当前 Agent 环境提供的能力，本仓库不自带浏览器驱动。
+需要 Python 3.10+；裁图、图像比较与视频变化扫描需要 Pillow。视频处理还需要 FFmpeg 和 FFprobe。运行 `python3 scripts/video_frames.py doctor` 检查；可用 `SCREENSHOT_TO_CODE_FFMPEG` 和 `SCREENSHOT_TO_CODE_FFPROBE` 指定已有可执行文件。浏览器操作、录制和截图使用当前 Agent 环境提供的能力，本仓库不自带浏览器驱动。
 
 ## 更新与同步
 
@@ -35,8 +35,10 @@ git pull --ff-only
 功能提交 `d97ed5c` 保留原截图流程，并新增：
 
 - 录屏抽帧与真实时间索引，包括分段采样和动画窗口逐帧导出。
+- 逐帧扫描缩小图中的变化，生成候选时间段，可自动导出原尺寸连续帧；支持针对小控件指定检测区域。
 - `interaction-spec.json`：记录状态、转换、触发依据，以及观察、推断和未知项。
-- 按真实经过时间配对参考录屏与复刻录屏，输出动态对比图与时间误差。
+- 按真实经过时间配对参考录屏与复刻录屏，保留全屏对比，并支持弹层、按钮等区域的并排图、叠加图、差异图和误差记录。
+- 动画标记通过需要连续帧审阅、包含中间过程的本地对比报告，以及实际视觉和交互检查记录。
 - 页面视觉、交互行为、动态还原分别验证，避免用点击成功代替视觉检查。
 - 截图兼容性与视频辅助工具的回归测试。
 
@@ -77,6 +79,17 @@ git pull --ff-only
 
 计时动画、跟手拖拽、滚动联动和加载完成触发的变化分别处理。视频不能唯一确定原始缓动曲线、弹簧参数或实现库；这些可以近似，但不能宣称精确还原。静态视觉、交互行为和动态还原分别验收，任何一项通过都不能代替另外两项。
 
+## 每次视频复刻的代码输出
+
+每次视频任务都根据该录屏生成对应的组件和动画源码，分别放入生成项目的 `components/` 和 `animations/` 目录。已有项目沿用框架和目录约定，例如 `src/components/`、`src/animations/`。页面实际引用这些文件，后续校准在同一组文件上迭代。
+
+- 组件文件：页面、按钮、卡片、弹窗等的结构、样式、状态与事件。
+- 动画文件：对应组件的关键帧、时长、缓动和动作执行逻辑，便于单独调整。
+- 入口文件：组装组件、加载样式并连接真实交互。
+- `design-qa.md`：记录状态/动作对应的组件文件、动画文件、参考帧和验证结果。
+
+文件以视频中的实际内容命名。输出需要包含页面正在使用的源码，不能只建空文件夹或放通用示例。继续通过抽帧分析参考视频；完整约定见 [视频代码结构](references/video-code-structure.md)。纯截图任务保留原有输出方式。
+
 ## 辅助脚本
 
 | 脚本 | 用途 |
@@ -84,8 +97,19 @@ git pull --ff-only
 | agent_adapter.py prepare | 读取截图；可追加 --interaction-spec 生成包含交互证据的构建说明 |
 | agent_adapter.py crop / finalize / compare | 素材裁切、HTML 提取、等尺寸截图对比 |
 | video_frames.py doctor / extract | 依赖检查、分段或逐帧导出原尺寸 PNG 与真实时间索引 |
-| interaction_spec.py | 检查状态、触发依据、帧引用、审阅范围与验证记录 |
-| motion_compare.py | 按动画起点及真实经过时间配对两段录屏，生成并排图、叠加图及时间误差记录 |
+| video_changes.py | 逐帧低分辨率变化扫描，定位候选片段；--extract 自动导出连续原尺寸帧，--region 可重复指定区域 |
+| interaction_spec.py | 检查状态、触发依据、帧引用和审阅范围；动画通过还需连续证据与有效回放报告 |
+| motion_compare.py | 按动画起点及真实经过时间配对录屏；--region 增加区域对比，始终保留全屏结果 |
+
+新增变化扫描示例：
+
+```bash
+python3 scripts/video_changes.py /absolute/demo.mp4 --output /absolute/work/changes --extract
+```
+
+需要特别检查小按钮时，可追加 `--region button:250,650,380,730`；区域坐标是视频解码后原图像素。候选检测不等于识别出交互，微小变化可能需要调整阈值，仍须查看录屏。区域比较使用归一化后的图像像素，并保留全屏检查。
+
+旧的 pending/partial 交互说明继续可用；旧动画记录若只有截图或链接，不能直接保持 passed，需要补齐新对比报告和检查记录。详见交互格式。
 
 详细示例见 [技能入口](SKILL.md)、[视频流程](references/video-workflow.md)、[交互格式](references/interaction-spec.md)和[动态验证](references/motion-verification.md)。对比不会偷偷缩放图片或拉伸时间轴，不输出未经验证的还原度评分。检查器能校验结构，不能代替 Agent 看画面和判断。
 
