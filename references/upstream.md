@@ -23,3 +23,5 @@ The adapter reads the vendored AST without executing its imports or using eval. 
 The unchanged web app still requires API keys. This skill is a replacement orchestration layer, not an unofficial endpoint into a logged-in account. It is not an official upstream skill. Heavy backend/frontend dependencies are unnecessary for this execution mode.
 
 User screenshots and the example H5 stay outside this reusable skill. No private names, user paths or credentials are embedded.
+
+The recording extension uses a local extraction and evidence workflow informed by the user's project video-analysis skill: decoded-frame PTS, coarse-to-dense review and explicit observation boundaries. It does not incorporate project business routes, deployments or diagnostic contracts. New local scripts export native PNG frames, validate interaction evidence and pair motion samples; the current agent remains responsible for interpretation, implementation and real browser verification.
